@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI SmartScan — Inventory Dashboard (Demo)</title>
+<style>
+:root{--navy:#0B1F3A;--navy2:#14325E;--cyan:#22D3EE;--lc:#E0F7FA;--teal:#0E7490;--amber:#F59E0B;--red:#DC2626;--green:#16A34A;--bg:#F4F8FB;--card:#fff;--tx:#0B1F3A;--mut:#64748B;--bd:#D8E4EC}
+*{box-sizing:border-box}body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx);display:flex;min-height:100vh}
+aside{width:210px;background:var(--navy);color:#fff;padding:18px 12px;position:sticky;top:0;height:100vh;flex-shrink:0}
+.logo{font-weight:700;font-size:18px;padding:4px 10px 18px}.logo span{color:var(--cyan)}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:#cfe8f0;padding:10px 12px;border-radius:8px;font-size:14px;cursor:pointer;margin-bottom:2px;font-family:inherit}
+nav button:hover{background:var(--navy2)}nav button.on{background:var(--cyan);color:var(--navy);font-weight:700}
+nav .badge{float:right;background:var(--amber);color:var(--navy);border-radius:10px;padding:0 7px;font-size:12px;font-weight:700}
+main{flex:1;padding:20px 26px;min-width:0}
+.demo{background:var(--amber);color:var(--navy);font-weight:700;font-size:13px;padding:7px 14px;border-radius:8px;margin-bottom:14px}
+h1{margin:0 0 4px;font-size:24px}.sub{color:var(--mut);margin:0 0 16px;font-size:14px}h3{margin:0 0 10px;font-size:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px}
+.stat .v{font-size:26px;font-weight:700}.stat .l{color:var(--mut);font-size:13px}.stat.warn{border-left:5px solid var(--amber)}.stat.ok{border-left:5px solid var(--cyan)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th{background:var(--navy);color:#fff;text-align:left;padding:9px 10px;white-space:nowrap}
+th.s{cursor:pointer}td{padding:8px 10px;border-bottom:1px solid var(--bd)}tbody tr:hover{background:var(--lc)}tr.click{cursor:pointer}
+.tw{overflow-x:auto;border-radius:10px;border:1px solid var(--bd);background:#fff}
+.pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700}
+.in{background:#DCFCE7;color:#166534}.low{background:#FEF3C7;color:#92400E}.out{background:#FEE2E2;color:#991B1B}.info{background:var(--lc);color:var(--teal)}
+.thumb{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.bar{height:8px;background:#E5EEF3;border-radius:4px;overflow:hidden;min-width:70px}.bar i{display:block;height:100%;background:var(--cyan)}.bar.lo i{background:var(--amber)}.bar.ou i{background:var(--red)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}input,select,button.b{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:#fff}
+button.b{background:var(--navy);color:#fff;cursor:pointer;border:0;font-weight:700}button.b.g{background:var(--teal)}button.b:disabled{background:#9db1bf;cursor:not-allowed}
+.neg{color:var(--red);font-weight:700}.zero{color:var(--green)}tr.disc{background:#FEF3C7!important}
+.list div{padding:7px 0;border-bottom:1px solid var(--bd);font-size:13.5px;display:flex;justify-content:space-between;gap:8px}
+.modal{position:fixed;inset:0;background:rgba(11,31,58,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}.modal.on{display:flex}
+.mbox{background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:20px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;margin:12px 0}.kv small{color:var(--mut);display:block;font-size:12px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;display:none;z-index:10;border-left:5px solid var(--cyan)}
+.sim{font-size:12px;font-weight:700;color:var(--teal);background:var(--lc);border:1px dashed var(--teal);padding:3px 8px;border-radius:6px}
+.scanimg{background:var(--navy);border-radius:10px}.dis{opacity:.55}
+@media(max-width:800px){body{flex-direction:column}aside{width:100%;height:auto;position:static;padding:8px}nav{display:flex;overflow-x:auto;gap:4px}nav button{white-space:nowrap;width:auto}.logo{padding:4px 8px}}
+</style></head><body>
+<aside><div class="logo">AI <span>SmartScan</span></div><nav id="nav"></nav></aside>
+<main><div class="demo">DEMO DATA — all products, prices and scan results are simulated. No AI model is connected yet.</div><div id="view"></div></main>
+<div class="modal" id="modal"><div class="mbox" id="mbox"></div></div><div class="toast" id="toast"></div>
+<script>
+const TODAY=new Date("2026-10-20");
+const P=[ // id,sku,name,cat,brand,qty,min,price,cost,size,supplier,expiry,emoji,color
+["P01","CR-001","Salted Crisps","Crisps","CrunchCo",86,40,1.2,0.7,"45 g","Snackline Ltd","2027-01-15","🥔","#FDE68A"],
+["P02","CR-002","Paprika Crisps","Crisps","CrunchCo",22,40,1.2,0.7,"45 g","Snackline Ltd","2026-11-05","🌶️","#FCA5A5"],
+["P03","BI-001","Choc Chip Biscuits","Biscuits","BakeHouse",48,30,2.1,1.3,"200 g","Daily Bakes","2027-02-10","🍪","#BFDBFE"],
+["P04","BI-002","Butter Biscuits","Biscuits","BakeHouse",0,25,1.9,1.1,"250 g","Daily Bakes","2027-03-01","🧈","#FDE68A"],
+["P05","CH-001","Milk Chocolate Bar","Chocolate","Cocoa&Co",64,30,1.5,0.9,"50 g","Sweet Supply","2027-04-20","🍫","#D6B38A"],
+["P06","CH-002","Dark Chocolate Bar","Chocolate","Cocoa&Co",18,25,1.7,1.0,"50 g","Sweet Supply","2026-11-12","🍫","#B08968"],
+["P07","SN-001","Mixed Nuts","Snacks","NutBox",35,20,2.8,1.8,"100 g","Snackline Ltd","2027-01-30","🥜","#FDE68A"],
+["P08","SN-002","Popcorn","Snacks","PopTime",52,20,1.4,0.8,"80 g","Snackline Ltd","2027-02-18","🍿","#FEF3C7"],
+["P09","DR-001","Orange Juice 1L","Drinks","FreshSip",40,30,2.4,1.5,"1 L","ColdChain Drinks","2026-11-02","🍊","#FDBA74"],
+["P10","DR-002","Cola 330 ml","Drinks","FizzUp",120,60,0.9,0.5,"330 ml","ColdChain Drinks","2027-05-01","🥤","#FCA5A5"],
+["P11","DR-003","Still Water 500 ml","Drinks","AquaPure",15,50,0.6,0.3,"500 ml","ColdChain Drinks","2027-08-01","💧","#BAE6FD"],
+["P12","HH-001","Paper Towels","Household","HomeEase",28,15,2.5,1.6,"2 rolls","Home Supplies","","🧻","#E0F7FA"],
+["P13","HH-002","Dish Soap","Household","HomeEase",33,15,1.9,1.1,"500 ml","Home Supplies","","🧼","#BBF7D0"],
+["P14","HH-003","Bin Bags","Household","HomeEase",9,15,3.2,2.0,"20 pcs","Home Supplies","","🗑️","#E2E8F0"]
+].map(a=>({id:a[0],sku:a[1],name:a[2],cat:a[3],brand:a[4],qty:a[5],min:a[6],price:a[7],cost:a[8],size:a[9],supplier:a[10],exp:a[11],em:a[12],col:a[13],barcode:a[0]=="P14"?"":"50"+(1000000+ +a[0].slice(1)*137)+"X"}));
+const byId=id=>P.find(p=>p.id==id);
+const MOV=[["2026-10-19","P10","+48","Delivery DEL-1040"],["2026-10-19","P05","-6","Sale adjustment"],["2026-10-18","P09","+24","Delivery DEL-1039"],["2026-10-17","P04","-25","Stock-take correction"],["2026-10-16","P11","-35","Sales"],["2026-10-15","P03","+30","Delivery DEL-1038"]];
+const DELIV=[{id:"DEL-1042",date:"2026-10-20",sup:"Snackline Ltd",status:"Awaiting verification"},{id:"DEL-1040",date:"2026-10-19",sup:"ColdChain Drinks",status:"Verified"},{id:"DEL-1039",date:"2026-10-18",sup:"ColdChain Drinks",status:"Verified"},{id:"DEL-1038",date:"2026-10-15",sup:"Daily Bakes",status:"Verified (1 discrepancy)"}];
+// SIMULATED scan of DEL-1042 (demo data, not a model prediction)
+let SCAN=[{pid:"P01",exp:100,det:94,conf:.93,ok:false},{pid:"P03",exp:60,det:60,conf:.91,ok:false},{pid:"P05",exp:40,det:40,conf:.72,ok:false}];
+let confirmed=false,sortK="name",sortD=1,q="",cat="All",st="All",ack=false,page="overview";
+const $=x=>document.querySelector(x),money=n=>"$"+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const status=p=>p.qty==0?"out":p.qty<=p.min?"low":"in",slab={in:"In Stock",low:"Low Stock",out:"Out of Stock"};
+const pill=p=>`<span class="pill ${status(p)}">${slab[status(p)]}</span>`;
+const thumb=p=>`<div class="thumb" style="background:${p.col}">${p.em}</div>`;
+const cats=[...new Set(P.map(p=>p.cat))];
+const daysTo=p=>p.exp?Math.round((new Date(p.exp)-TODAY)/864e5):null;
+const unver=()=>DELIV.filter(d=>d.status.startsWith("Awaiting")).length;
+const attention=()=>P.filter(p=>!p.barcode);
+function bars(data,w=460,h=220){const m=Math.max(...data.map(d=>d[1]))*1.1,bw=w/data.length;return `<svg viewBox="0 0 ${w} ${h+30}" width="100%">`+data.map((d,i)=>{const bh=d[1]/m*h;return `<rect x="${i*bw+12}" y="${h-bh}" width="${bw-24}" height="${bh}" rx="5" fill="${i%2?'#0E7490':'#22D3EE'}"/><text x="${i*bw+bw/2}" y="${h-bh-5}" text-anchor="middle" font-size="12" fill="#0B1F3A" font-weight="700">${d[1]}</text><text x="${i*bw+bw/2}" y="${h+18}" text-anchor="middle" font-size="12" fill="#64748B">${d[0]}</text>`}).join("")+`</svg>`}
+function donut(data){const tot=data.reduce((a,d)=>a+d[1],0),cols=["#22D3EE","#0E7490","#14325E","#38BDF8","#F59E0B","#94A3B8"];let off=0,r=60,c=2*Math.PI*r;const arcs=data.map((d,i)=>{const l=d[1]/tot*c,s=`<circle r="${r}" cx="80" cy="80" fill="none" stroke="${cols[i]}" stroke-width="28" stroke-dasharray="${l} ${c-l}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"/>`;off+=l;return s}).join("");return `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><svg viewBox="0 0 160 160" width="160">${arcs}<text x="80" y="76" text-anchor="middle" font-size="22" font-weight="700" fill="#0B1F3A">${tot}</text><text x="80" y="94" text-anchor="middle" font-size="11" fill="#64748B">units</text></svg><div>${data.map((d,i)=>`<div style="font-size:13px;margin:3px 0"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${cols[i]};margin-right:6px"></span>${d[0]} — ${Math.round(d[1]/tot*100)}%</div>`).join("")}</div></div>`}
+const catQty=()=>cats.map(c=>[c,P.filter(p=>p.cat==c).reduce((a,p)=>a+p.qty,0)]);
+const bar=p=>`<div class="bar ${status(p)=="low"?"lo":status(p)=="out"?"ou":""}"><i style="width:${Math.min(100,p.qty/Math.max(p.min*2,1)*100)}%"></i></div>`;
+const V={
+overview(){const tu=P.reduce((a,p)=>a+p.qty,0),val=P.reduce((a,p)=>a+p.qty*p.price,0),low=P.filter(p=>status(p)!="in");
+return `<h1>Overview</h1><p class="sub">Store stock at a glance (demo data)</p><div class="cards">
+<div class="card stat"><div class="v">${P.length}</div><div class="l">Total products</div></div>
+<div class="card stat"><div class="v">${tu}</div><div class="l">Units in stock</div></div>
+<div class="card stat warn"><div class="v">${low.length}</div><div class="l">Low / out of stock</div></div>
+<div class="card stat ok"><div class="v">${DELIV.length}</div><div class="l">Recent deliveries</div></div>
+<div class="card stat warn"><div class="v">${unver()}</div><div class="l">Awaiting verification</div></div>
+<div class="card stat"><div class="v">${money(val)}</div><div class="l">Est. inventory value</div></div></div>
+<div class="grid2"><div class="card"><h3>Units by category</h3>${bars(catQty())}</div><div class="card"><h3>Stock distribution</h3>${donut(catQty())}</div></div>
+<div class="grid2"><div class="card list"><h3>Low-stock indicators</h3>${low.map(p=>`<div><span>${p.em} ${p.name}</span><span>${p.qty}/${p.min} ${pill(p)}</span></div>`).join("")}</div>
+<div class="card list"><h3>Recent inventory changes</h3>${MOV.slice(0,6).map(m=>`<div><span>${m[0]} · ${byId(m[1]).name}</span><span class="${m[2][0]=="-"?"neg":"zero"}">${m[2]} <small style="color:#64748B">${m[3]}</small></span></div>`).join("")}</div></div>
+<div class="card"><h3>Current quantities</h3>${P.map(p=>`<div style="display:flex;align-items:center;gap:10px;margin:5px 0">${thumb(p)}<span style="width:170px;font-size:13.5px">${p.name}</span>${bar(p).replace('class="bar','style="flex:1" class="bar')}<b style="width:36px;text-align:right">${p.qty}</b></div>`).join("")}</div>`},
+inventory(){let r=P.filter(p=>(cat=="All"||p.cat==cat)&&(st=="All"||slab[status(p)]==st)&&(p.name+p.sku+p.brand).toLowerCase().includes(q.toLowerCase()));
+r.sort((a,b)=>(a[sortK]>b[sortK]?1:-1)*sortD);
+const th=(k,l)=>`<th class="s" onclick="srt('${k}')">${l}${sortK==k?(sortD>0?" ▲":" ▼"):""}</th>`;
+return `<h1>Product inventory</h1><p class="sub">Search, filter and sort. Click a row for details.</p><div class="tools"><input id="q" placeholder="Search name, SKU, brand" value="${q}" oninput="q=this.value;keep()">
+<select onchange="cat=this.value;go()"><option>All</option>${cats.map(c=>`<option ${c==cat?"selected":""}>${c}</option>`)}</select>
+<select onchange="st=this.value;go()">${["All","In Stock","Low Stock","Out of Stock"].map(s=>`<option ${s==st?"selected":""}>${s}</option>`)}</select></div>
+<div class="tw"><table><thead><tr><th>Image</th>${th("name","Product")}${th("sku","SKU")}${th("cat","Category")}${th("brand","Brand")}${th("qty","Qty")}${th("min","Min")}${th("price","Price")}<th>Value</th><th>Status</th></tr></thead><tbody>${r.map(p=>`<tr class="click" onclick="detail('${p.id}')"><td>${thumb(p)}</td><td><b>${p.name}</b></td><td>${p.sku}</td><td>${p.cat}</td><td>${p.brand}</td><td><b>${p.qty}</b></td><td>${p.min}</td><td>${money(p.price)}</td><td>${money(p.qty*p.price)}</td><td>${pill(p)}</td></tr>`).join("")||"<tr><td colspan=10>No products match.</td></tr>"}</tbody></table></div>`},
+scans(){return `<h1>AI scan results</h1><p class="sub">Delivery DEL-1042 · Snackline Ltd · <span class="sim">SIMULATED SCAN — not a real model prediction</span></p>
+<div class="grid2"><div class="card"><h3>Scanned image preview (simulated)</h3><svg class="scanimg" viewBox="0 0 320 190" width="100%"><rect x="20" y="150" width="280" height="14" fill="#22D3EE"/>${[0,1,2,3,4,5].map(i=>`<rect x="${34+i*44}" y="${95-(i%2)*8}" width="32" height="52" rx="5" fill="#F59E0B" stroke="#B45309"/><rect x="${30+i*44}" y="${91-(i%2)*8}" width="40" height="60" fill="none" stroke="#22D3EE" stroke-width="2"/><text x="${32+i*44}" y="${86-(i%2)*8}" font-size="9" fill="#22D3EE">crisps ${(0.9+i*0.01).toFixed(2)}</text>`).join("")}<text x="20" y="20" font-size="11" fill="#fff">Simulated preview (boxes are drawn, not detected)</text></svg></div>
+<div class="card"><h3>Review uncertain results</h3><p class="sub">Confidence below 80% must be reviewed before accepting.</p>${SCAN.map((s,i)=>{const u=s.conf<.8;return `<div style="border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:8px;${u?"background:#FEF3C7":""}"><b>${byId(s.pid).em} ${byId(s.pid).name}</b> <span class="pill ${u?"low":"info"}">${Math.round(s.conf*100)}% confidence</span><div style="margin-top:6px;font-size:13.5px">Expected <b>${s.exp}</b> · Detected <input type="number" min="0" value="${s.det}" style="width:70px" onchange="SCAN[${i}].det=+this.value;SCAN[${i}].ok=false;go()"> ${u?`<select onchange="SCAN[${i}].pid=this.value;go()">${P.filter(p=>p.cat=="Chocolate").map(p=>`<option value="${p.id}" ${p.id==s.pid?"selected":""}>${p.name}</option>`)}</select>`:""} <button class="b g" onclick="SCAN[${i}].ok=true;go()">${s.ok?"✓ Accepted":"Accept"}</button></div></div>`}).join("")}</div></div>
+<div class="tw"><table><thead><tr><th>Product</th><th>Confidence</th><th>Expected</th><th>Detected</th><th>Difference</th></tr></thead><tbody>${SCAN.map(s=>`<tr class="${s.det!=s.exp?"disc":""}"><td>${byId(s.pid).name}</td><td>${Math.round(s.conf*100)}%</td><td>${s.exp}</td><td>${s.det}</td><td class="${s.det-s.exp?"neg":"zero"}">${s.det-s.exp}</td></tr>`).join("")}</tbody></table></div>`},
+verify(){const dis=SCAN.some(s=>s.det!=s.exp),unc=SCAN.some(s=>s.conf<.8&&!s.ok),can=!confirmed&&!unc&&(!dis||ack);
+return `<h1>Delivery verification</h1><p class="sub">DEL-1042 · Snackline Ltd · <span class="sim">SIMULATED SCAN DATA</span></p><div class="tw"><table><thead><tr><th>Product</th><th>Expected</th><th>Detected</th><th>Difference</th></tr></thead><tbody>${SCAN.map(s=>`<tr class="${s.det!=s.exp?"disc":""}"><td>${byId(s.pid).em} ${byId(s.pid).name}</td><td>${s.exp}</td><td>${s.det}</td><td class="${s.det-s.exp?"neg":"zero"}">${s.det-s.exp>0?"+":""}${s.det-s.exp}</td></tr>`).join("")}</tbody></table></div>
+<div class="card" style="margin-top:12px">${confirmed?`<b class="zero">✓ Delivery confirmed and inventory updated.</b>`:`${unc?`<p class="neg">Uncertain scan results must be reviewed on the AI Scans page first.</p>`:""}${dis?`<label><input type="checkbox" ${ack?"checked":""} onchange="ack=this.checked;go()"> I have manually verified the discrepancies (e.g. recounted the crisps).</label><br><br>`:""}<button class="b" ${can?"":"disabled"} onclick="confirmDel()">Confirm delivery and update inventory</button>`}</div>`},
+alerts(){const lo=P.filter(p=>status(p)=="low"),ou=P.filter(p=>status(p)=="out"),ex=P.filter(p=>p.exp&&daysTo(p)<=30&&daysTo(p)>=0);
+const sec=(t,items,cls)=>`<div class="card list"><h3>${t} <span class="pill ${cls}">${items.length}</span></h3>${items.map(x=>`<div>${x}</div>`).join("")||"<div>None</div>"}</div>`;
+return `<h1>Stock alerts</h1><p class="sub">Items that need attention (demo data, today = 2026-10-20)</p><div class="grid2">${sec("Low stock",lo.map(p=>`${p.em} ${p.name} — ${p.qty} left (min ${p.min})`),"low")}${sec("Out of stock",ou.map(p=>`${p.em} ${p.name}`),"out")}${sec("Unverified deliveries",DELIV.filter(d=>d.status.startsWith("Awaiting")).map(d=>`${d.id} · ${d.sup}`),"low")}${sec("Records requiring attention",attention().map(p=>`${p.name} — missing barcode`),"info")}${sec("Expiring batches (≤30 days)",ex.map(p=>`${p.em} ${p.name} — ${daysTo(p)} days (${p.exp})`),"low")}</div>`},
+reports(){const rows=cats.map(c=>{const l=P.filter(p=>p.cat==c);return `<tr><td>${c}</td><td>${l.length}</td><td>${l.reduce((a,p)=>a+p.qty,0)}</td><td>${money(l.reduce((a,p)=>a+p.qty*p.cost,0))}</td><td>${money(l.reduce((a,p)=>a+p.qty*p.price,0))}</td></tr>`}).join("");
+return `<h1>Reports and analytics</h1><p class="sub">Demo data. Use your browser’s Print to save as PDF.</p><div class="grid2"><div class="card"><h3>Category summary and inventory valuation</h3><div class="tw"><table><thead><tr><th>Category</th><th>Products</th><th>Units</th><th>Cost value</th><th>Retail value</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+<div class="card"><h3>Delivery discrepancy report</h3><div class="tw"><table><thead><tr><th>Delivery</th><th>Supplier</th><th>Status</th></tr></thead><tbody>${DELIV.map(d=>`<tr><td>${d.id}</td><td>${d.sup}</td><td>${d.status}</td></tr>`).join("")}</tbody></table></div></div></div>
+<div class="card"><h3>Stock movement history</h3><div class="tw"><table><thead><tr><th>Date</th><th>Product</th><th>Change</th><th>Reason</th></tr></thead><tbody>${MOV.map(m=>`<tr><td>${m[0]}</td><td>${byId(m[1]).name}</td><td class="${m[2][0]=="-"?"neg":"zero"}">${m[2]}</td><td>${m[3]}</td></tr>`).join("")}</tbody></table></div></div>`}};
+const NAV=[["overview","📊 Overview"],["inventory","📦 Inventory"],["scans","📷 AI Scans"],["verify","✅ Verification"],["alerts","🔔 Alerts"],["reports","📈 Reports"]];
+function go(p){if(p)page=p;$("#nav").innerHTML=NAV.map(n=>`<button class="${n[0]==page?"on":""}" onclick="go('${n[0]}')">${n[1]}${n[0]=="verify"&&!confirmed?'<span class="badge">1</span>':""}</button>`).join("");$("#view").innerHTML=V[page]()}
+function keep(){const el=$("#q"),pos=el.selectionStart;go();const e=$("#q");e.focus();e.setSelectionRange(pos,pos)}
+function srt(k){sortD=sortK==k?-sortD:1;sortK=k;go()}
+function detail(id){const p=byId(id),d=daysTo(p);$("#mbox").innerHTML=`<div style="display:flex;gap:14px;align-items:center"><div class="thumb" style="width:70px;height:70px;font-size:40px;background:${p.col}">${p.em}</div><div><h1 style="margin:0">${p.name}</h1><span>${p.brand} · ${p.size}</span> ${pill(p)}</div><button class="b" style="margin-left:auto" onclick="$('#modal').classList.remove('on')">Close</button></div>
+<p>${p.name} (${p.size}) by ${p.brand}. Demo description for the prototype.</p><div class="kv"><div><small>SKU</small>${p.sku}</div><div><small>Barcode</small>${p.barcode||"— missing"}</div><div><small>In stock</small><b>${p.qty}</b> (min ${p.min})</div><div><small>Unit cost / price</small>${money(p.cost)} / ${money(p.price)}</div><div><small>Supplier</small>${p.supplier}</div><div><small>Expiry / batch</small>${p.exp?p.exp+" · "+d+" days":"n/a"}</div></div>
+<h3>Recent stock movements</h3><div class="list">${MOV.filter(m=>m[1]==id).map(m=>`<div><span>${m[0]}</span><span>${m[2]} ${m[3]}</span></div>`).join("")||"<div>No recent movements</div>"}</div>
+<h3 style="margin-top:12px">Previous deliveries</h3><div class="list">${DELIV.filter(x=>x.sup==p.supplier).map(x=>`<div><span>${x.id} · ${x.date}</span><span>${x.status}</span></div>`).join("")||"<div>None recorded</div>"}</div>`;$("#modal").classList.add("on")}
+function confirmDel(){SCAN.forEach(s=>{const p=byId(s.pid);p.qty+=s.det;MOV.unshift(["2026-10-20",s.pid,"+"+s.det,"Delivery DEL-1042"])});DELIV[0].status="Verified"+(SCAN.some(s=>s.det!=s.exp)?" (discrepancy)":"");confirmed=true;fetch("/api/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({scan:SCAN})}).catch(()=>{});toast("Delivery confirmed — inventory updated");go()}
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";setTimeout(()=>e.style.display="none",2500)}
+$("#modal").onclick=e=>{if(e.target.id=="modal")e.target.classList.remove("on")};
+async function boot(){try{const r=await fetch("/api/state");if(r.ok){const d=await r.json();P.splice(0,P.length,...d.products);MOV.splice(0,MOV.length,...d.movements);DELIV.splice(0,DELIV.length,...d.deliveries);SCAN.splice(0,SCAN.length,...d.scan);confirmed=d.confirmed;document.querySelector(".demo").textContent="DEMO DATA served by the Flask API — scan results are simulated. No AI model is connected yet."}}catch(e){}
+go(location.hash.slice(1)&&V[location.hash.slice(1)]?location.hash.slice(1):"overview")}boot();
+</script></body></html>
