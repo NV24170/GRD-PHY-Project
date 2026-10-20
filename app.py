@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import CheckConstraint
 from sqlalchemy.exc import IntegrityError
@@ -112,6 +112,13 @@ def seed_demo_data():
         db.session.add(DeliveryItem(delivery_id="DEL-1042", product_id=pid,
             expected_qty=exp, detected_qty=det, confidence=conf))
     db.session.commit()
+
+
+@app.get("/")
+def dashboard():
+    return send_from_directory(
+        app.root_path, "AI SmartScan — Inventory Dashboard (Demo).html"
+    )
 
 
 @app.get("/api/health")

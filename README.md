@@ -47,6 +47,12 @@ Then visit `http://localhost:8000/`.
 
 SQLite data is stored in `instance/smartscan.db`.
 
+## Deploy on Render
+
+The included `render.yaml` configures a Python web service for this repository. In Render, create a new Blueprint and select the repository. Render installs the dependencies and starts the app with Gunicorn; the dashboard is available at the service root and `/api/health` is used as the health check. After deployment, verify `https://<your-service>.onrender.com/` and `https://<your-service>.onrender.com/api/health`.
+
+The demo uses SQLite in the service filesystem. Render's default filesystem is ephemeral, so inventory changes can be lost when the service restarts or redeploys. Use a persistent disk or a managed database before relying on deployed data.
+
 ## API endpoints
 
 | Method | Endpoint | Purpose |
